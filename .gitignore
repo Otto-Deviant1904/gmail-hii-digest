@@ -1,0 +1,42 @@
+# --- Secrets: never commit these ---
+credentials.json
+client_secret*.json
+token.json
+*.token.json
+.env
+.env.*
+!.env.example
+
+# --- Generated digests ---
+previews/
+*.digest.html
+digest_preview*.html
+digest_preview*.txt
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+ENV/
+.python-version
+
+# --- Tooling caches ---
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# --- OS / editors ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hii-digest"
+version = "1.0.0"
+description = "Email yourself 'hii' and get a reply with today's 10 most important emails."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "google-api-python-client>=2.100,<3",
+    "google-auth>=2.23,<3",
+    "google-auth-oauthlib>=1.1,<2",
+    "google-auth-httplib2>=0.1.1",
+    "python-dotenv>=1.0,<2",
+    "requests>=2.31,<3",
+    "tzdata>=2024.1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.4", "pytest-cov>=4.1", "ruff>=0.6"]
+
+[project.scripts]
+hii-digest = "hii_digest.cli:main"
+
+[tool.setuptools]
+packages = ["hii_digest"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.coverage.run]
+source = ["hii_digest"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "N", "SIM", "RUF"]
+ignore = ["N803", "RUF001"]  # Gmail API arg names (userId); "·" in rendered text is intentional
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["E501", "B017"]
+"hii_digest/demo_data.py" = ["E501"]
+"hii_digest/render.py" = ["E501"]  # inline-styled HTML template lines
