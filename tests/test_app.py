@@ -10,6 +10,7 @@ from hii_digest import DIGEST_HEADER, DIGEST_TRIGGER_HEADER
 from hii_digest.app import Labels, process_once, run_loop
 from hii_digest.fake_gmail import FakeHttpError
 from hii_digest.gmail import GmailClient
+from hii_digest.timewindow import now_utc
 from tests.conftest import NOW, OWNER, at, incoming, trigger_msg
 
 
@@ -193,3 +194,53 @@ def test_run_loop_only_new_passes_startup_time(client, cfg, monkeypatch):
     monkeypatch.setattr("hii_digest.app.process_once", fake_once)
     run_loop(client, cfg, stop=threading.Event(), max_checks=1, only_new=True)
     assert seen["not_before"] is not None
+
+
+def test_only_new_cutoff_is_the_startup_moment(fake, client, cfg, monkeypatch):
+    """No grace period: a trigger received even 1s before launch is skipped."""
+    seen = {}
+
+    def fake_once(client, cfg, labels, not_before=None):
+        seen["not_before"] = not_before
+        return 0
+
+    monkeypatch.setattr("hii_digest.app.process_once", fake_once)
+    started = now_utc()
+    run_loop(client, cfg, stop=threading.Event(), max_checks=1, only_new=True)
+    assert started <= seen["not_before"] <= now_utc()
+
+
+def test_unreadable_thread_does_not_send_a_duplicate(fake, client, cfg, monkeypatch):
+    """The pre-send guard fails closed: an unreadable thread means we do not send."""
+    _mailbox(fake)
+    labels = Labels(client, cfg)
+
+    def boom(thread_id):
+        raise FakeHttpError(503, "backend error")
+
+    monkeypatch.setattr(client, "get_thread", boom)
+    with pytest.raises(FakeHttpError):
+        process_once(client, cfg, labels, now=NOW)
+    assert fake.sent == []
+    # Left unhandled, so the next poll retries it.
+    assert labels.handled not in fake.messages["trig1"]["labelIds"]
+
+
+def test_run_loop_retries_the_trigger_after_a_read_error(fake, client, cfg, monkeypatch):
+    _mailbox(fake)
+    from hii_digest.app import already_answered as real_guard
+
+    attempts = []
+
+    def flaky(client_, trigger, digest_label_id):
+        attempts.append(trigger.id)
+        if len(attempts) == 1:
+            raise FakeHttpError(503, "backend error")
+        return real_guard(client_, trigger, digest_label_id)
+
+    monkeypatch.setattr("hii_digest.app.already_answered", flaky)
+    stop = threading.Event()
+    monkeypatch.setattr(stop, "wait", lambda delay: None)
+    run_loop(client, cfg.__class__(poll_interval=1), stop=stop, max_checks=2)
+    assert len(attempts) == 2
+    assert len(fake.sent) == 1  # answered exactly once, on the retry

@@ -144,8 +144,10 @@ def test_llm_code_fenced_json_and_partial_items():
     assert s.overall.startswith("You've received")  # empty overall -> offline overall
 
 
-def test_llm_retries_without_json_mode_on_400():
-    session = FakeSession(FakeResponse(status=400), chat(GOOD))
+@pytest.mark.parametrize("status", [400, 404, 422, 501])
+def test_llm_retries_without_json_mode_on_400(status):
+    """Servers signal an unsupported response_format with more than just 400."""
+    session = FakeSession(FakeResponse(status=status), chat(GOOD))
     s = LLMSummarizer(LLM_CFG, session=session).summarize(_top(), STATS, WINDOW)
     assert s.source == "llm"
     assert "response_format" not in session.requests[1]["json"]

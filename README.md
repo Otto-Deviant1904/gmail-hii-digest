@@ -211,6 +211,7 @@ All settings are optional. Put them in `.env`, starting from `.env.example`, or 
 | `HII_TOP_N` | `10` | Number of emails in the digest |
 | `HII_TRIGGER_LOOKBACK_HOURS` | `24` | Only answer triggers received within this many hours |
 | `HII_MAX_CANDIDATES` | `150` | Maximum number of today's messages fetched and scored |
+| `HII_MAX_TRIGGERS` | `25` | Maximum number of candidate trigger emails inspected per check |
 | `HII_CREDENTIALS_FILE` | `credentials.json` | OAuth client file from Google Cloud |
 | `HII_TOKEN_FILE` | `token.json` | Cached sign-in token (created by `auth`) |
 | `HII_HANDLED_LABEL` | `hii-digest/handled` | Label put on answered triggers (created automatically) |
@@ -276,4 +277,11 @@ hii_digest/
 tests/            # pytest suite (fake Gmail, mocked LLM)
 ```
 
-CI (GitHub Actions) runs ruff and the test suite on Python 3.10, 3.11 and 3.12 (Ubuntu), plus 3.12 on macOS and Windows.
+The checks below were run by hand; this repo does not ship a CI workflow. To reproduce them locally:
+
+```bash
+pip install -r requirements-dev.txt
+ruff check . && ruff format --check .
+pytest --cov=hii_digest
+python -m hii_digest preview --demo
+```
