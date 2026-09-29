@@ -24,6 +24,9 @@ MAX_LINE_CHARS = 220
 MAX_BODY_CHARS_FOR_LLM = 1500
 _URL_RE = re.compile(r"https?://\S+")
 
+# Status codes an OpenAI-compatible server may use to reject response_format.
+_JSON_MODE_REJECTED = frozenset({400, 404, 422, 501})
+
 
 @dataclass
 class Summaries:
@@ -159,8 +162,9 @@ class LLMSummarizer:
             json=body,
             timeout=self.cfg.llm_timeout,
         )
-        if resp.status_code == 400 and json_mode:
-            # Some OpenAI-compatible servers don't support response_format; retry plain.
+        if json_mode and resp.status_code in _JSON_MODE_REJECTED:
+            # Some OpenAI-compatible servers reject response_format with a 400, but
+            # others use 404 / 422 / 501 for an unknown body parameter.
             return self._post(messages, json_mode=False)
         if resp.status_code >= 400:
             raise LLMError(f"HTTP {resp.status_code} from LLM endpoint")
