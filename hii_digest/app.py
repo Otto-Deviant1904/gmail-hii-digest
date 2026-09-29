@@ -34,12 +34,12 @@ def already_answered(client, trigger: Email, digest_label_id: str) -> bool:
     """True if the trigger's thread already holds a digest answering this trigger.
 
     Guards against duplicates if we crashed after sending but before labelling.
+
+    Fails closed: if the thread cannot be inspected we do *not* claim it was
+    unanswered, because that would send a second digest. The error propagates so
+    the poll loop leaves the trigger unhandled and retries it on the next pass.
     """
-    try:
-        thread = client.get_thread(trigger.thread_id)
-    except Exception as exc:
-        log.debug("Could not inspect thread %s: %s", trigger.thread_id, exc)
-        return False
+    thread = client.get_thread(trigger.thread_id)
     return any(
         is_digest_message(m, digest_label_id) and m.header(DIGEST_TRIGGER_HEADER) == trigger.id
         for m in thread
@@ -131,7 +131,7 @@ def run_loop(
     """
     stop = stop or threading.Event()
     labels = Labels(client, cfg)
-    not_before = now_utc() - timedelta(seconds=5) if only_new else None
+    not_before = now_utc() if only_new else None
     log.info(
         "Watching %s for '%s' every %gs (timezone %s). Press Ctrl+C to stop.",
         client.owner_email(),
