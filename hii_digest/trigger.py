@@ -119,10 +119,22 @@ def find_pending_triggers(
     lookback: timedelta,
     limit: int = 25,
 ) -> list[Email]:
-    """Unhandled trigger emails, oldest first."""
+    """Unhandled trigger emails, oldest first.
+
+    At most ``limit`` candidate emails are inspected. If the search is truncated
+    we warn, because older triggers in the lookback window go unanswered.
+    """
     owner = client.owner_email()
     pending: list[Email] = []
-    for ref in client.search(trigger_query(lookback), limit):
+    refs = client.search(trigger_query(lookback), limit)
+    if len(refs) == limit:
+        log.warning(
+            "Trigger search hit the %d-email cap (HII_MAX_TRIGGERS); older triggers in the "
+            "%s lookback window may go unanswered this pass",
+            limit,
+            lookback,
+        )
+    for ref in refs:
         meta = client.get_message(ref["id"], full=False)
         if handled_label_id in meta.labels or is_digest_message(meta, digest_label_id):
             continue

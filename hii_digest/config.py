@@ -23,6 +23,7 @@ class Config:
     top_n: int = 10
     trigger_lookback_hours: float = 24.0
     max_candidates: int = 150
+    max_triggers: int = 25
     credentials_file: Path = Path("credentials.json")
     token_file: Path = Path("token.json")
     handled_label: str = "hii-digest/handled"
@@ -93,6 +94,7 @@ def load_config(env: dict[str, str] | None = None, env_file: str | os.PathLike |
         top_n=int(_num(env, "HII_TOP_N", 10, int, 1)),
         trigger_lookback_hours=_num(env, "HII_TRIGGER_LOOKBACK_HOURS", 24.0, float, 0.1),
         max_candidates=int(_num(env, "HII_MAX_CANDIDATES", 150, int, 1)),
+        max_triggers=int(_num(env, "HII_MAX_TRIGGERS", 25, int, 1)),
         credentials_file=Path(_get(env, "HII_CREDENTIALS_FILE", "credentials.json")),
         token_file=Path(_get(env, "HII_TOKEN_FILE", "token.json")),
         handled_label=_get(env, "HII_HANDLED_LABEL", "hii-digest/handled"),

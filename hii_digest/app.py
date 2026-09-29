@@ -85,6 +85,7 @@ def process_once(
         digest_label_id=labels.digest,
         now=now,
         lookback=timedelta(hours=cfg.trigger_lookback_hours),
+        limit=cfg.max_triggers,
     )
     if not_before is not None:
         skipped = [t for t in triggers if t.received < not_before]
